@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas.public import (
     PublicDeveloperResponse,
     PublicMediaResponse,
+    PublicProjectPageResponse,
     PublicProjectResponse,
 )
 
@@ -80,9 +81,9 @@ def get_public_developer(
 
 @router.get(
     "/dev/{username}/{slug}",
-    response_model=PublicProjectResponse,
+    response_model=PublicProjectPageResponse,
 )
-def get_public_project(
+async def get_public_project(
     username: str,
     slug: str,
     db: Session = Depends(get_db),
@@ -123,17 +124,24 @@ def get_public_project(
         .order_by(ProjectMedia.position)
     ).all()
 
-    return PublicProjectResponse(
-        id=project.id,
-        slug=project.slug,
-        title=project.title,
-        tagline=project.tagline,
-        description_md=project.description_md,
-        tech=project.tech,
-        github_url=project.github_url,
-        demo_url=project.demo_url,
-        view_count=project.view_count,
-        created_at=project.created_at,
-        updated_at=project.updated_at,
-        media=[PublicMediaResponse.model_validate(item) for item in media],
+    return PublicProjectPageResponse(
+        developer={
+            "username": user.username,
+            "display_name": user.display_name,
+            "avatar_path": user.avatar_path,
+        },
+        project=PublicProjectResponse(
+            id=project.id,
+            slug=project.slug,
+            title=project.title,
+            tagline=project.tagline,
+            description_md=project.description_md,
+            tech=project.tech,
+            github_url=project.github_url,
+            demo_url=project.demo_url,
+            view_count=project.view_count,
+            created_at=project.created_at,
+            updated_at=project.updated_at,
+            media=[PublicMediaResponse.model_validate(item) for item in media],
+        ),
     )

@@ -26,6 +26,8 @@ class PublicProjectResponse(BaseModel):
     updated_at: datetime
     media: list[PublicMediaResponse]
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class PublicDeveloperResponse(BaseModel):
     username: str
@@ -36,3 +38,16 @@ class PublicDeveloperResponse(BaseModel):
     linkedin_url: str | None
     website_url: str | None
     projects: list[PublicProjectResponse]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicProjectDeveloperResponse(BaseModel):
+    username: str
+    display_name: str
+    avatar_path: str | None
+
+
+class PublicProjectPageResponse(BaseModel):
+    developer: PublicProjectDeveloperResponse
+    project: PublicProjectResponse
