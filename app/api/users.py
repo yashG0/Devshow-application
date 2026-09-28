@@ -22,20 +22,13 @@ def update_me(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if data.display_name is not None:
-        current_user.display_name = data.display_name
+    updates = data.model_dump(exclude_unset=True)
 
-    if data.bio is not None:
-        current_user.bio = data.bio
+    for key, value in updates.items():
+        if key in {"github_url", "linkedin_url", "website_url"} and value is not None:
+            value = str(value)
 
-    if data.github_url is not None:
-        current_user.github_url = data.github_url
-
-    if data.linkedin_url is not None:
-        current_user.linkedin_url = data.linkedin_url
-
-    if data.website_url is not None:
-        current_user.website_url = data.website_url
+        setattr(current_user, key, value)
 
     db.commit()
     db.refresh(current_user)
