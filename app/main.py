@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from sqlalchemy import text
 
-from app.db.session import engine
+from app.api.auth import router as auth_router
+from app.api.projects import router as projects_router
+from app.api.users import router as users_router
 
 app = FastAPI(
     title="DevShow API",
@@ -9,15 +10,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(projects_router)
+
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.get("/health/db")
-def database_health() -> dict[str, str]:
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
-
-    return {"database": "ok"}
