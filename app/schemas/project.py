@@ -32,6 +32,16 @@ class ProjectUpdate(BaseModel):
     demo_url: HttpUrl | None = None
 
 
+class ProjectMediaResponse(BaseModel):
+    id: int
+    project_id: int
+    path: str
+    alt: str | None
+    position: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProjectResponse(BaseModel):
     id: int
     owner_id: int
@@ -46,5 +56,7 @@ class ProjectResponse(BaseModel):
     view_count: int
     created_at: datetime
     updated_at: datetime
+
+    media: list[ProjectMediaResponse] = []
 
     model_config = ConfigDict(from_attributes=True)

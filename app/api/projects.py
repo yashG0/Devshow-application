@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.models.project import Project
+from app.models.project_media import ProjectMedia
 from app.models.user import User
 from app.schemas.project import (
     ProjectCreate,
+    ProjectMediaResponse,
     ProjectResponse,
     ProjectUpdate,
 )
@@ -48,7 +50,7 @@ def create_project(
     db.commit()
     db.refresh(project)
 
-    return project
+    return build_project_response(project, db)
 
 
 @router.get(
@@ -88,7 +90,7 @@ def get_project(
             detail="Project not found",
         )
 
-    return project
+    return build_project_response(project, db)
 
 
 @router.patch(
@@ -125,7 +127,7 @@ def update_project(
     db.commit()
     db.refresh(project)
 
-    return project
+    return build_project_response(project, db)
 
 
 @router.delete(
@@ -181,4 +183,32 @@ def toggle_publish(
     db.commit()
     db.refresh(project)
 
-    return project
+    return build_project_response(project, db)
+
+
+def build_project_response(
+    project: Project,
+    db: Session,
+) -> ProjectResponse:
+    media = db.scalars(
+        select(ProjectMedia)
+        .where(ProjectMedia.project_id == project.id)
+        .order_by(ProjectMedia.position)
+    ).all()
+
+    return ProjectResponse(
+        id=project.id,
+        owner_id=project.owner_id,
+        slug=project.slug,
+        title=project.title,
+        tagline=project.tagline,
+        description_md=project.description_md,
+        tech=project.tech,
+        github_url=project.github_url,
+        demo_url=project.demo_url,
+        is_published=project.is_published,
+        view_count=project.view_count,
+        created_at=project.created_at,
+        updated_at=project.updated_at,
+        media=[ProjectMediaResponse.model_validate(item) for item in media],
+    )
