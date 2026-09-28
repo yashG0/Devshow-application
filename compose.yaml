@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: devshow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: devshow
+      POSTGRES_USER: devshow
+      POSTGRES_PASSWORD: devshow
+    ports:
+      - "5432:5432"
+    volumes:
+      - devshow_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  devshow_postgres_data:
