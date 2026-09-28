@@ -9,7 +9,9 @@ from app.models.user import User
 from app.schemas.project import (
     ProjectCreate,
     ProjectResponse,
+    ProjectUpdate,
 )
+from app.services.project import generate_slug
 
 router = APIRouter(
     prefix="/api/projects",
@@ -29,7 +31,11 @@ def create_project(
 ):
     project = Project(
         owner_id=current_user.id,
-        slug=data.title.lower().replace(" ", "-"),
+        slug=generate_slug(
+            data.title,
+            current_user.id,
+            db,
+        ),
         title=data.title,
         tagline=data.tagline,
         description_md=data.description_md,
@@ -81,5 +87,98 @@ def get_project(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found",
         )
+
+    return project
+
+
+@router.patch(
+    "/{project_id}",
+    response_model=ProjectResponse,
+)
+def update_project(
+    project_id: int,
+    data: ProjectUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.scalar(
+        select(Project).where(
+            Project.id == project_id,
+            Project.owner_id == current_user.id,
+        )
+    )
+
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    updates = data.model_dump(exclude_unset=True)
+
+    for field, value in updates.items():
+        if field in {"github_url", "demo_url"} and value is not None:
+            value = str(value)
+
+        setattr(project, field, value)
+
+    db.commit()
+    db.refresh(project)
+
+    return project
+
+
+@router.delete(
+    "/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_project(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.scalar(
+        select(Project).where(
+            Project.id == project_id,
+            Project.owner_id == current_user.id,
+        )
+    )
+
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    db.delete(project)
+    db.commit()
+
+
+@router.patch(
+    "/{project_id}/publish",
+    response_model=ProjectResponse,
+)
+def toggle_publish(
+    project_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.scalar(
+        select(Project).where(
+            Project.id == project_id,
+            Project.owner_id == current_user.id,
+        )
+    )
+
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    project.is_published = not project.is_published
+
+    db.commit()
+    db.refresh(project)
 
     return project
