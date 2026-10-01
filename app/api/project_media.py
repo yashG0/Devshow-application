@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-
+from pydantic import BaseModel
 from app.core.dependencies import get_current_user
 from app.db.dependencies import get_db
 from app.models.project import Project
@@ -23,6 +23,9 @@ MAX_MEDIA_PER_PROJECT = 5
 MAX_IMAGE_SIZE = 1600
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
 
+
+class ProjectMediaReorderRequest(BaseModel):
+    media_ids: list[int]
 
 @router.post(
     "/{project_id}/media",
@@ -151,5 +154,50 @@ def delete_project_media(
 
     if file_path.exists():
         file_path.unlink()
+
+    return None
+
+
+@router.put(
+    "/{project_id}/media/reorder",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def reorder_project_media(
+    project_id: int,
+    payload: ProjectMediaReorderRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = db.scalar(
+        select(Project).where(
+            Project.id == project_id,
+            Project.owner_id == current_user.id,
+        )
+    )
+
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found",
+        )
+
+    media = db.scalars(
+        select(ProjectMedia).where(
+            ProjectMedia.project_id == project_id
+        )
+    ).all()
+
+    media_by_id = {item.id: item for item in media}
+
+    if len(payload.media_ids) != len(media) or set(payload.media_ids) != set(media_by_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Media list does not match project media",
+        )
+
+    for position, media_id in enumerate(payload.media_ids):
+        media_by_id[media_id].position = position
+
+    db.commit()
 
     return None
