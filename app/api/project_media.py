@@ -148,13 +148,24 @@ def delete_project_media(
         )
 
     file_path = Path(media.path.lstrip("/"))
-
+    
     db.delete(media)
+    db.flush()
+    
+    remaining_media = db.scalars(
+        select(ProjectMedia)
+        .where(ProjectMedia.project_id == project_id)
+        .order_by(ProjectMedia.position, ProjectMedia.id)
+    ).all()
+    
+    for position, item in enumerate(remaining_media):
+        item.position = position
+    
     db.commit()
-
+    
     if file_path.exists():
         file_path.unlink()
-
+    
     return None
 
 
