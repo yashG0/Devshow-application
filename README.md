@@ -6,6 +6,8 @@ DevShow API powers developer profiles, project management, project media, authen
 
 It is built as a standalone FastAPI service and is designed to run independently from the React frontend.
 
+**Live frontend:** [devshow.yashgaurkar.me](https://devshow.yashgaurkar.me)
+
 ---
 
 ## ✨ What is DevShow?
@@ -538,6 +540,10 @@ These interfaces can be used to inspect and manually test API endpoints.
 ---
 
 ## 📦 Production Deployment
+
+**Live frontend:** [devshow.yashgaurkar.me](https://devshow.yashgaurkar.me)
+
+The React frontend is hosted separately from this API. The deployment layout below shows how the frontend, API, and database are separated; update hostnames and infrastructure details to match the active environment.
 
 The planned production architecture is:
 
