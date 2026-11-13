@@ -1,33 +1,30 @@
 # DevShow API
 
-> Production-oriented backend API for DevShow — a modern platform for developers to build, manage, publish, and showcase their projects.
+> FastAPI backend for DevShow — a platform where developers build, manage, publish, and share their project portfolios.
 
-DevShow API powers developer profiles, project management, project media, authentication, publishing, and public portfolio pages.
+DevShow API powers developer profiles, project management, project media, authentication, publishing, and public portfolio pages. It is a standalone service that runs independently from the React frontend.
 
-It is built as a standalone FastAPI service and is designed to run independently from the React frontend.
-
-**Live frontend:** [devshow.yashgaurkar.me](https://devshow.yashgaurkar.me)
+| | |
+|---|---|
+| **Live app** | [devshow.yashgaurkar.me](https://devshow.yashgaurkar.me) |
+| **Frontend repo** | [github.com/yashG0/DevShow](https://github.com/yashG0/DevShow) (React + TypeScript) |
+| **Backend repo** | [github.com/yashG0/DevShow-backend](https://github.com/yashG0/DevShow-backend) (this repository) |
 
 ---
 
 ## ✨ What is DevShow?
 
-DevShow is a developer showcase platform focused on one simple goal:
+DevShow is a developer showcase platform with one goal:
 
 **Give developers a polished place to present what they build.**
 
-The backend provides the application services behind:
+The backend provides the services behind:
 
-- Developer accounts
-- Developer profiles
-- Project management
-- Project publishing
+- Developer accounts and profiles
+- Project management and publishing
 - Project screenshots
-- Public developer profiles
-- Public project pages
+- Public developer profiles and project pages
 - Project view counting
-
-The frontend is maintained separately.
 
 ---
 
@@ -59,26 +56,18 @@ Developers can manage:
 
 Authenticated developers can:
 
-- Create projects
-- Update projects
-- Delete projects
-- Publish projects
-- Unpublish projects
+- Create, update, and delete projects
+- Publish and unpublish projects
 - Add technology tags
-- Add GitHub repository links
-- Add live demo links
+- Add GitHub repository and live demo links
 - Write Markdown project descriptions
 
 ### Project Media
 
-Projects support:
-
-- Up to 5 screenshots
-- JPEG, PNG, and WEBP uploads
-- 5 MB maximum upload size
-- Image validation using Pillow
-- Image processing and WebP output
-- Thumbnail resizing
+- Up to 5 screenshots per project
+- JPEG, PNG, and WEBP uploads, 5 MB maximum
+- Image validation and processing with Pillow
+- WebP output with thumbnail resizing
 - Ordered media positions
 - Media deletion
 
@@ -86,15 +75,8 @@ Projects support:
 
 Published content is available without authentication.
 
-Public developer profile:
-
 ```text
 GET /api/public/dev/{username}
-```
-
-Public project:
-
-```text
 GET /api/public/dev/{username}/{slug}
 ```
 
@@ -111,49 +93,38 @@ Public project requests also increment the project's view counter.
 | SQLAlchemy | ORM |
 | PostgreSQL | Relational database |
 | Alembic | Database migrations |
-| Pydantic | Validation and schemas |
-| Pydantic Settings | Environment configuration |
+| Pydantic / Pydantic Settings | Validation, schemas, environment configuration |
 | Argon2 | Password hashing |
 | PyJWT | JWT authentication |
-| Pillow | Image processing |
+| Pillow | Image validation and processing |
 | psycopg | PostgreSQL driver |
 | Uvicorn | ASGI server |
 | Podman | Local container infrastructure |
+| uv | Dependency management |
 
 ---
 
 ## 🏗️ Architecture
 
-The DevShow backend follows a modular FastAPI architecture.
-
 ```text
-                    ┌──────────────────────┐
-                    │   React Frontend     │
-                    │   DevShow Web App    │
-                    └──────────┬───────────┘
-                               │
-                         HTTPS / JSON
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │     FastAPI API      │
-                    │                      │
-                    │  Auth                │
-                    │  Profiles            │
-                    │  Projects            │
-                    │  Media               │
-                    │  Public API          │
-                    └──────────┬───────────┘
-                               │
-                         SQLAlchemy
-                               │
-                               ▼
-                    ┌──────────────────────┐
-                    │     PostgreSQL       │
-                    └──────────────────────┘
+ Browser
+    │
+    ▼
+ https://devshow.yashgaurkar.me        React frontend (Vercel)
+    │
+    │  HTTPS / JSON + JWT bearer token
+    ▼
+ Reverse proxy (HTTPS)                  Azure Ubuntu VM
+    │
+    ▼
+ FastAPI / Uvicorn
+    │   Auth · Profiles · Projects · Media · Public API
+    │
+    ├── SQLAlchemy ──▶ PostgreSQL
+    └── Pillow ──────▶ uploads/ (local disk)
 ```
 
-The API is intentionally separated from the frontend so that the backend can be deployed independently.
+The frontend and API are deployed independently. The API validates every request at the boundary with Pydantic, enforces ownership server-side, and persists data through SQLAlchemy.
 
 ---
 
@@ -163,43 +134,25 @@ The API is intentionally separated from the frontend so that the backend can be 
 backend/
 ├── app/
 │   ├── main.py
-│   │
-│   ├── models/
-│   │   ├── user.py
-│   │   ├── project.py
-│   │   └── project_media.py
-│   │
-│   ├── schemas/
-│   │   ├── auth.py
-│   │   ├── user.py
-│   │   └── project.py
-│   │
-│   ├── routers/
-│   │   ├── auth.py
-│   │   ├── users.py
-│   │   ├── projects.py
-│   │   └── public.py
-│   │
-│   ├── services/
-│   │   └── project.py
-│   │
-│   └── dependencies/
-│       └── auth.py
+│   ├── models/          # user, project, project_media
+│   ├── schemas/         # auth, user, project (Pydantic)
+│   ├── routers/         # auth, users, projects, public
+│   ├── services/        # project business logic
+│   └── dependencies/    # auth dependencies
 │
-├── migrations/
+├── migrations/          # Alembic
 │   ├── versions/
 │   └── env.py
 │
 ├── uploads/
 │   └── projects/
 │
-├── .env
 ├── alembic.ini
 ├── pyproject.toml
 └── README.md
 ```
 
-> Directory names may evolve as the project grows. The architecture is organized around API routes, validation schemas, database models, services, and infrastructure.
+> Directory names may evolve as the project grows.
 
 ---
 
@@ -220,9 +173,7 @@ username=<email>
 password=<password>
 ```
 
-A successful login returns an access token.
-
-Authenticated requests use:
+A successful login returns an access token. Authenticated requests use:
 
 ```http
 Authorization: Bearer <token>
@@ -230,79 +181,37 @@ Authorization: Bearer <token>
 
 ### Password Security
 
-Passwords are never stored directly.
-
-DevShow uses **Argon2** for password hashing.
+Passwords are never stored directly. DevShow uses **Argon2** for password hashing.
 
 ### Token Lifetime
 
-Access tokens currently expire after:
-
-```text
-7 days
-```
-
-Logout is stateless: the frontend discards its stored access token.
+Access tokens expire after **7 days**. Logout is stateless: the frontend discards its stored token. See [Known Limitations](#-known-limitations).
 
 ---
 
 ## 🗄️ Database
 
-DevShow uses PostgreSQL with SQLAlchemy.
-
-Current core entities:
+PostgreSQL with SQLAlchemy.
 
 ```text
 User
- │
  └── Project
-      │
       └── ProjectMedia
 ```
 
-### User
+- **User** — developer identity and profile information
+- **Project** — title, slug, tagline, Markdown description, technologies, repository URL, demo URL, publication state, view count, timestamps
+- **ProjectMedia** — project relationship, uploaded file path, alternative text, display position
 
-Stores developer identity and profile information.
-
-### Project
-
-Stores:
-
-- Title
-- Slug
-- Tagline
-- Markdown description
-- Technologies
-- Repository URL
-- Demo URL
-- Publication state
-- View count
-- Timestamps
-
-### ProjectMedia
-
-Stores:
-
-- Project relationship
-- Uploaded file path
-- Alternative text
-- Display position
-
----
-
-## 🔄 Database Migrations
+### Migrations
 
 Alembic manages schema changes.
 
-Run migrations with:
-
 ```bash
+# apply migrations
 uv run alembic upgrade head
-```
 
-Create a new migration after model changes:
-
-```bash
+# create a migration after model changes
 uv run alembic revision --autogenerate -m "describe change"
 ```
 
@@ -314,40 +223,26 @@ Review generated migrations before applying them.
 
 ### Prerequisites
 
-Recommended:
-
 - Python 3.14+
 - uv
-- PostgreSQL
-- Podman
+- PostgreSQL (or Podman, below)
 
-### Clone
+### Setup
 
 ```bash
 git clone git@github.com:yashG0/DevShow-backend.git
 cd DevShow-backend
-```
-
-### Install dependencies
-
-```bash
 uv sync
 ```
 
-### Environment
-
-Create a `.env` file:
+Create a `.env` file (never commit it):
 
 ```env
 DATABASE_URL=postgresql+psycopg://devshow:devshow@localhost:5432/devshow
 JWT_SECRET=replace-with-a-strong-secret
 ```
 
-Never commit real production secrets.
-
-### Start PostgreSQL
-
-For local development, PostgreSQL can run through Podman:
+Start PostgreSQL with Podman:
 
 ```bash
 podman run -d \
@@ -359,110 +254,69 @@ podman run -d \
   postgres:16
 ```
 
-### Run migrations
+Run migrations and start the API:
 
 ```bash
 uv run alembic upgrade head
-```
-
-### Start the API
-
-```bash
 uv run uvicorn app.main:app --reload
 ```
 
-The API will be available at:
-
-```text
-http://localhost:8000
-```
-
-Interactive API documentation:
-
-```text
-http://localhost:8000/docs
-```
-
-Alternative OpenAPI documentation:
-
-```text
-http://localhost:8000/redoc
-```
+| URL | Purpose |
+|---|---|
+| `http://localhost:8000` | API |
+| `http://localhost:8000/docs` | Swagger UI |
+| `http://localhost:8000/redoc` | ReDoc |
 
 ---
 
 ## ❤️ Health Check
 
-The service exposes:
-
 ```http
 GET /health
 ```
 
-Example:
-
 ```json
-{
-  "status": "ok"
-}
+{ "status": "ok" }
 ```
 
-This endpoint is useful for local checks, reverse proxies, containers, and deployment health monitoring.
+Useful for local checks, reverse proxies, and deployment monitoring.
 
 ---
 
 ## 🔌 API Overview
 
-### Authentication
-
 ```text
+# Authentication
 POST /api/auth/register
 POST /api/auth/token
 GET  /api/auth/me
-```
 
-### Developer Profile
-
-```text
+# Developer profile
 GET   /api/me
 PATCH /api/me
-```
 
-### Projects
-
-```text
+# Projects
 POST   /api/projects
 GET    /api/projects
 GET    /api/projects/{project_id}
 PATCH  /api/projects/{project_id}
 DELETE /api/projects/{project_id}
+PATCH  /api/projects/{project_id}/publish
 
-PATCH /api/projects/{project_id}/publish
-```
-
-### Project Media
-
-```text
+# Project media
 POST   /api/projects/{project_id}/media
 DELETE /api/projects/{project_id}/media/{media_id}
-```
 
-### Public
-
-```text
+# Public (no authentication)
 GET /api/public/dev/{username}
 GET /api/public/dev/{username}/{slug}
 ```
 
-The OpenAPI specification available at `/docs` is the authoritative reference for request and response schemas.
+The OpenAPI specification at `/docs` is the authoritative reference for request and response schemas.
 
 ---
 
 ## 🖼️ Media Handling
-
-Uploaded project screenshots are processed by the backend.
-
-Current constraints:
 
 ```text
 Maximum screenshots per project: 5
@@ -471,201 +325,136 @@ Accepted formats:                JPEG / PNG / WEBP
 Stored output:                   WEBP
 ```
 
-Images are validated and processed with Pillow.
-
-Uploaded media is served through:
-
-```text
-/uploads/...
-```
+Uploads are validated and processed with Pillow, then served from `/uploads/...`.
 
 ---
 
 ## 🌐 CORS
 
-Development origins include:
+Development origins:
 
 ```text
 http://localhost:5173
 http://127.0.0.1:5173
 ```
 
-The production frontend origin is:
+Production origin:
 
 ```text
 https://devshow.yashgaurkar.me
 ```
 
-Production CORS configuration should be kept explicit rather than allowing arbitrary origins.
+Production CORS is explicit; arbitrary origins are not allowed.
 
 ---
 
 ## 🛡️ Security
-
-The backend follows several security principles:
 
 - Passwords are hashed with Argon2
 - JWT authentication protects private resources
 - Project ownership is checked before modification
 - Unpublished projects are hidden from public endpoints
 - Uploaded images are validated before processing
-- Production secrets are provided through environment variables
+- Production secrets come from environment variables
 - CORS origins are explicitly configured
 - Database credentials are not stored in source code
 
-The backend remains responsible for authorization even when the frontend hides protected functionality.
-
----
-
-## 🧪 API Development
-
-FastAPI automatically generates an OpenAPI specification.
-
-During development:
-
-```text
-Swagger UI
-http://localhost:8000/docs
-```
-
-and:
-
-```text
-ReDoc
-http://localhost:8000/redoc
-```
-
-These interfaces can be used to inspect and manually test API endpoints.
+Authorization is enforced by the backend even when the frontend hides protected functionality.
 
 ---
 
 ## 📦 Production Deployment
 
-**Live frontend:** [devshow.yashgaurkar.me](https://devshow.yashgaurkar.me)
+DevShow is deployed with the frontend and API hosted separately.
 
-The React frontend is hosted separately from this API. The deployment layout below shows how the frontend, API, and database are separated; update hostnames and infrastructure details to match the active environment.
+| Component | Where it runs |
+|---|---|
+| Frontend | Vercel — [devshow.yashgaurkar.me](https://devshow.yashgaurkar.me) |
+| API | Azure Ubuntu VM, Uvicorn behind `<reverse proxy: Caddy / Nginx>` with HTTPS |
+| Process manager | `<e.g. systemd service name>` |
+| Database | PostgreSQL — `<how it runs, e.g. Podman container on the VM>` |
+| Media | Local disk under `uploads/` on the VM |
 
-The planned production architecture is:
+Deploying a new version:
 
-```text
-                         Internet
-                            │
-                            ▼
-              https://devshow.yashgaurkar.me
-                            │
-                         Vercel
-                       React Frontend
-                            │
-                            │ HTTPS
-                            ▼
-                 https://api.yashgaurkar.me
-                            │
-                            ▼
-                         Nginx
-                            │
-                            ▼
-                     FastAPI / Uvicorn
-                            │
-                            ▼
-                       PostgreSQL
+```bash
+git pull
+uv sync
+uv run alembic upgrade head
+# restart the API service
 ```
 
-The frontend and backend are deployed independently.
-
-Production deployment will use:
-
-- Linux server
-- FastAPI
-- Uvicorn
-- Nginx
-- PostgreSQL
-- HTTPS
-- Environment-based configuration
-
-Deployment-specific instructions will be added as the infrastructure is finalized.
+Production configuration is supplied through environment variables (`DATABASE_URL`, `JWT_SECRET`).
 
 ---
 
 ## 📊 Current Project Status
 
-DevShow API currently includes:
-
-- [x] User registration
-- [x] JWT login
-- [x] Password hashing
+- [x] User registration and JWT login
+- [x] Argon2 password hashing
 - [x] Developer profile API
-- [x] Project CRUD
-- [x] Project publishing
-- [x] Project media uploads
-- [x] Project media deletion
-- [x] Public developer API
-- [x] Public project API
+- [x] Project CRUD and publishing
+- [x] Project media uploads and deletion
+- [x] Public developer and project APIs
 - [x] Project view counter
-- [x] PostgreSQL integration
-- [x] Alembic migrations
+- [x] PostgreSQL integration and Alembic migrations
 - [x] CORS configuration
 - [x] Static media serving
 - [x] Health endpoint
+- [x] Deployed on Azure VM with HTTPS
+- [ ] Automated test suite
+- [ ] CI pipeline
+
+---
+
+## ⚠️ Known Limitations
+
+- **View counter is not deduplicated.** Every public project request increments it, so refreshes and bots inflate the count.
+- **Stateless JWT with no revocation.** Tokens last 7 days, there are no refresh tokens, and logout only discards the token on the client.
+- **Media lives on the VM's local disk.** It is tied to a single machine and is not shared across instances.
+- **No automated tests yet.** Endpoints are verified manually through Swagger UI.
+- **No email verification or password reset.**
+- **Single-instance deployment.**
 
 ---
 
 ## 🧭 Product Scope
 
-DevShow deliberately keeps the first version focused.
+DevShow deliberately keeps the first version focused. The backend does **not** currently provide:
 
-The backend does **not** currently attempt to provide:
-
-- Social feeds
-- Likes
-- Bookmarks
-- Follows
-- Developer discovery
-- Search
-- GitHub importing
-- OAuth
-- Refresh tokens
-- Email verification
-- Password reset
-- Comments
+- Social feeds, likes, bookmarks, follows, or comments
+- Developer discovery or search
+- GitHub importing or OAuth
+- Refresh tokens, email verification, or password reset
 - Analytics dashboards
-- Redis-based infrastructure
-- Object storage integration
+- Redis-based infrastructure or object storage
 
 These can be evaluated independently as the product evolves.
 
 ---
 
+## 🔮 Next Steps
+
+- Automated tests for auth, ownership checks, and publishing, run in CI
+- Deduplicated view counting
+- Refresh tokens
+- Object storage for media
+
+---
+
 ## 🧠 Engineering Principles
 
-DevShow follows a few practical principles:
-
-### Keep the architecture understandable
-
-Prefer straightforward FastAPI modules and explicit API boundaries.
-
-### Validate at the API boundary
-
-Pydantic schemas handle request validation before data reaches the service/database layer.
-
-### Keep authorization server-side
-
-The frontend is never treated as a security boundary.
-
-### Ship incrementally
-
-Each meaningful feature is implemented, verified, and committed independently.
-
-### Avoid premature infrastructure
-
-The initial system uses PostgreSQL and local media storage without introducing unnecessary distributed infrastructure.
+- **Keep the architecture understandable** — straightforward FastAPI modules and explicit API boundaries.
+- **Validate at the API boundary** — Pydantic schemas validate requests before data reaches the service and database layer.
+- **Keep authorization server-side** — the frontend is never treated as a security boundary.
+- **Ship incrementally** — each meaningful feature is implemented, verified, and committed independently.
+- **Avoid premature infrastructure** — PostgreSQL and local media storage, without unnecessary distributed systems.
 
 ---
 
 ## 🤝 Contributing
 
-DevShow is currently maintained as a personal product project.
-
-Contribution guidelines will be added if the repository becomes open for external contributions.
+DevShow is currently maintained as a personal product project. Contribution guidelines will be added if the repository becomes open for external contributions.
 
 ---
 
@@ -677,18 +466,8 @@ License information will be added before the project is distributed for external
 
 ## 👨‍💻 Author
 
-**Yash Gaurkar**
+**Yash Gaurkar** — MCA Student · Backend Developer
 
-MCA Student · Backend Developer
-
-Built with:
-
-```text
-Python
-FastAPI
-PostgreSQL
-SQLAlchemy
-Alembic
-Podman
-Linux
-```
+- GitHub: [github.com/yashG0](https://github.com/yashG0)
+- LinkedIn: [linkedin.com/in/yash-gaurkar-a897b3228](https://linkedin.com/in/yash-gaurkar-a897b3228)
+- Portfolio: [portfolio.yashgaurkar.me](https://portfolio.yashgaurkar.me)
